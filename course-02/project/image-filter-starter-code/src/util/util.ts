@@ -1,5 +1,7 @@
 import fs from 'fs';
 import Jimp = require('jimp');
+const path = require('path');
+const fsPromises = fs.promises;
 
 // filterImageFromURL
 // helper function to download, filter, and save the filtered image locally
@@ -9,17 +11,23 @@ import Jimp = require('jimp');
 // RETURNS
 //    an absolute path to a filtered image locally saved file
 export async function filterImageFromURL(inputURL: string): Promise<string>{
-    return new Promise( async resolve => {
-        const photo = await Jimp.read(inputURL);
-        const outpath = '/tmp/filtered.'+Math.floor(Math.random() * 2000)+'.jpg';
-        await photo
-        .resize(256, 256) // resize
-        .quality(60) // set JPEG quality
-        .greyscale() // set greyscale
-        .write(__dirname+outpath, (img)=>{
-            resolve(__dirname+outpath);
+    return new Promise( async (resolve,reject) => {
+        await 
+            Jimp.read(inputURL)
+                .then(photo => {
+                    const outpath = '/tmp/filtered.'+Math.floor(Math.random() * 2000)+'.jpg';
+                    photo
+                    .resize(256, 256) // resize
+                    .quality(60) // set JPEG quality
+                    .greyscale() // set greyscale
+                    .write(__dirname+outpath, (img)=>{
+                        resolve(__dirname+outpath);
+                    });
+                })
+                .catch(error => {
+                    reject(null);
+                });
         });
-    });
 }
 
 // deleteLocalFiles
@@ -31,4 +39,16 @@ export async function deleteLocalFiles(files:Array<string>){
     for( let file of files) {
         fs.unlinkSync(file);
     }
+}
+
+// getLocalFilesUrl
+// helper function to retrieve files on local disk 
+// return array that includes absolute path of local files
+// RETURNS
+//    array of an absolute path of locally saved filtered image files
+export async function getLocalFilesUrls(): Promise<Array<string>>{
+    const directoryPath = path.join(__dirname, 'tmp');
+    let files = await fsPromises.readdir(directoryPath);
+    files = files.map(file => __dirname + "/tmp/" + file);
+    return files;
 }
